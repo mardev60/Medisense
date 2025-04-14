@@ -1,0 +1,27 @@
+<div class="min-h-screen bg-gray-100">
+  <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="px-4 py-6 sm:px-0">
+      <div class="bg-white shadow rounded-lg p-6">
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold text-gray-900">Tableau de bord</h1>
+          <button 
+            (click)="signOut()" 
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Se déconnecter
+          </button>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-4">
+          <h2 class="text-lg font-medium text-gray-900 mb-2">Informations utilisateur</h2>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <p class="text-sm font-medium text-gray-500">ID Utilisateur</p>
+              <p class="mt-1 text-sm text-gray-900">{{ userId }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 
