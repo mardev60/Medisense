@@ -8,16 +8,49 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
-      <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-        <h1 class="app-title mb-8">Medisense</h1>
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-white">
+      <div class="relative">
+        <!-- Background decorative elements -->
+        <div class="absolute -top-32 -left-32 w-64 h-64 bg-green-100 rounded-full opacity-20 animate-pulse"></div>
+        <div class="absolute -bottom-32 -right-32 w-64 h-64 bg-green-100 rounded-full opacity-20 animate-pulse delay-300"></div>
         
-        <button 
-          (click)="loginWithGoogle()" 
-          class="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-lg px-6 py-3 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 shadow-sm">
-          <img src="https://www.google.com/favicon.ico" alt="Google" class="w-5 h-5">
-          <span>Se connecter avec Google</span>
-        </button>
+        <!-- Main content -->
+        <div class="bg-white p-12 rounded-3xl shadow-2xl relative z-10 backdrop-blur-sm bg-opacity-90">
+          <div class="text-center mb-10">
+            <h1 class="app-title text-6xl mb-4">Medisense</h1>
+            <p class="text-gray-600 text-lg mb-8">Votre assistant médical intelligent</p>
+            
+            <div class="max-w-lg mx-auto space-y-4 text-gray-600">
+              <p class="flex items-center justify-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Comprenez vos résultats médicaux en quelques secondes
+              </p>
+              <p class="flex items-center justify-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Posez vos questions en langage naturel
+              </p>
+              <p class="flex items-center justify-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Réponses instantanées et précises
+              </p>
+            </div>
+          </div>
+          
+          <div class="flex justify-center">
+            <button 
+              (click)="loginWithGoogle()" 
+              class="w-64 flex items-center justify-center gap-3 bg-white border-2 border-gray-200 rounded-xl px-8 py-4 text-gray-700 hover:bg-gray-50 hover:border-green-300 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] text-base">
+              <img src="https://www.google.com/favicon.ico" alt="Google" class="w-6 h-6">
+              <span class="font-medium">Se connecter</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   `

@@ -20,7 +20,7 @@
     "ngx-dropzone": "^3.1.0",
     "ng2-pdf-viewer": "^10.0.0",
     "@angular/material": "^19.0.0",
-    "@angular/fire": "^17.0.1",
+    "@angular/fire": "^19.1.0",
     "firebase": "^10.8.0"
   },
   "devDependencies": {
