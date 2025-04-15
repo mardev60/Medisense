@@ -53,9 +53,14 @@ export interface UploadedFile {
             <div class="h-3 bg-green-100 rounded-full overflow-hidden">
               <div class="h-full bg-green-500 transition-all duration-300" [style.width.%]="uploadProgress"></div>
             </div>
-            <p class="text-center mt-3 text-green-700 font-medium">
-              Chargement en cours... {{uploadProgress}}%
-            </p>
+            <div class="flex justify-between items-center mt-3">
+              <p class="text-center text-green-700 font-medium">
+                {{loadingMessage}}
+              </p>
+              <p class="text-center text-green-700 font-medium">
+                {{uploadProgress}}%
+              </p>
+            </div>
           </div>
         </div>
 
@@ -133,6 +138,15 @@ export class FileUploadComponent implements OnInit {
   isUploading = false;
   uploadProgress = 0;
   documents: UploadedFile[] = [];
+  loadingMessage = '';
+  private loadingMessages = [
+    { progress: 0, message: 'Je commence à lire le document...' },
+    { progress: 20, message: 'Je scanne les pages...' },
+    { progress: 40, message: 'Je comprends la structure...' },
+    { progress: 60, message: 'Je repère les informations importantes...' },
+    { progress: 80, message: 'Je finalise mon analyse...' },
+    { progress: 100, message: 'Prêt à répondre à vos questions !' }
+  ];
 
   constructor(
     private http: HttpClient,
@@ -172,6 +186,7 @@ export class FileUploadComponent implements OnInit {
     if (file) {
       this.isUploading = true;
       this.uploadProgress = 0;
+      this.startLoadingSimulation();
 
       this.authService.user$.pipe(take(1)).subscribe(user => {
         if (!user) {
@@ -189,11 +204,8 @@ export class FileUploadComponent implements OnInit {
           observe: 'events'
         }).subscribe({
           next: (event: any) => {
-            if (event.type === 1) {
-              this.uploadProgress = Math.round((event.loaded / event.total) * 100);
-            } else if (event.type === 4) { 
+            if (event.type === 4) { 
               this.isUploading = false;
-              console.log(event.body);
               if (event.body && event.body.data && event.body.data.pdf_id) {
                 localStorage.setItem('currentPdfId', event.body.data.pdf_id);
                 localStorage.setItem('storage_url', event.body.data.storage_url);
@@ -209,6 +221,17 @@ export class FileUploadComponent implements OnInit {
         });
       });
     }
+  }
+
+  private startLoadingSimulation() {
+    const stepDuration = 1500;
+
+    this.loadingMessages.forEach((step, index) => {
+      setTimeout(() => {
+        this.uploadProgress = step.progress;
+        this.loadingMessage = step.message;
+      }, index * stepDuration);
+    });
   }
 
   viewFile(storageUrl: string) {

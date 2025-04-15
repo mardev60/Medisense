@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
@@ -52,6 +52,16 @@ interface ChatResponse {
                  [ngClass]="{'message': true, 'user-message': message.isUser, 'ai-message': !message.isUser}">
               {{ message.text }}
             </div>
+            <div *ngIf="isLoading" class="message ai-message">
+              <div class="flex items-center space-x-2">
+                <span>Je réfléchis</span>
+                <div class="flex space-x-1">
+                  <span class="animate-bounce" style="animation-delay: 0ms">.</span>
+                  <span class="animate-bounce" style="animation-delay: 150ms">.</span>
+                  <span class="animate-bounce" style="animation-delay: 300ms">.</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="border-t p-4 bg-white rounded-b-2xl">
@@ -100,9 +110,24 @@ interface ChatResponse {
         </div>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    .animate-bounce {
+      animation: bounce 1s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+  `]
 })
-export class ChatComponent implements OnInit {
+export class ChatComponent implements OnInit, AfterViewChecked {
+  @ViewChild('chatContainer') private chatContainer!: ElementRef;
   @Input() messages: Message[] = [];
   @Output() goBack = new EventEmitter<void>();
 
@@ -110,6 +135,7 @@ export class ChatComponent implements OnInit {
   isLoading = false;
   isPdfExpanded = false;
   pdfUrl = '';
+  private shouldScroll = false;
 
   constructor(
     private http: HttpClient,
@@ -121,6 +147,21 @@ export class ChatComponent implements OnInit {
       this.addBotMessage('Bonjour ! Je suis votre assistant médical. Comment puis-je vous aider ?');
     }
     this.loadPdfUrl();
+  }
+
+  ngAfterViewChecked() {
+    if (this.shouldScroll) {
+      this.scrollToBottom();
+      this.shouldScroll = false;
+    }
+  }
+
+  private scrollToBottom(): void {
+    try {
+      this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
+    } catch (err) {
+      console.error('Erreur lors du défilement:', err);
+    }
   }
 
   togglePdf() {
@@ -171,9 +212,11 @@ export class ChatComponent implements OnInit {
 
   private addUserMessage(text: string) {
     this.messages.push({ text, isUser: true });
+    this.shouldScroll = true;
   }
 
   private addBotMessage(text: string) {
     this.messages.push({ text, isUser: false });
+    this.shouldScroll = true;
   }
 }
