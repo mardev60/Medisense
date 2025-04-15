@@ -1,7 +1,7 @@
-import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 import { take } from 'rxjs/operators';
@@ -70,16 +70,40 @@ interface ChatResponse {
                      [(ngModel)]="userInput" 
                      (keyup.enter)="sendMessage()"
                      placeholder="Posez votre question sur le document..."
-                     [disabled]="isLoading"
+                     [disabled]="isLoading || isVoiceMode"
                      class="chat-input">
               <button (click)="sendMessage()" 
                       [disabled]="!userInput || isLoading"
-                      class="btn-primary flex items-center">
+                      class="btn-primary flex items-center"
+                      *ngIf="!isVoiceMode">
                 <span>Envoyer</span>
                 <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                 </svg>
               </button>
+              <button (click)="toggleVoiceMode()" 
+                      class="btn-primary flex items-center"
+                      [ngClass]="{'bg-red-500 hover:bg-red-600': isVoiceMode, 'bg-green-500 hover:bg-green-600': !isVoiceMode}">
+                <span>{{ isVoiceMode ? 'Arrêter' : 'Mode vocal' }}</span>
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                </svg>
+              </button>
+            </div>
+            <div *ngIf="isVoiceMode" class="mt-4 flex items-center justify-center">
+              <div class="flex flex-col items-center">
+                <div class="relative">
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                      <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="w-24 h-24 rounded-full border-4 border-green-500 animate-pulse"></div>
+                </div>
+                <p class="mt-4 text-gray-600">{{ isListening ? 'Je vous écoute...' : 'Cliquez sur le bouton pour parler' }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -124,6 +148,21 @@ interface ChatResponse {
         transform: translateY(-4px);
       }
     }
+
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.05);
+      }
+    }
   `]
 })
 export class ChatComponent implements OnInit, AfterViewChecked {
@@ -136,11 +175,40 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   isPdfExpanded = false;
   pdfUrl = '';
   private shouldScroll = false;
+  isVoiceMode = false;
+  isListening = false;
+  private recognition: any;
 
   constructor(
     private http: HttpClient,
-    private authService: AuthService
-  ) {}
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) {
+    if ('webkitSpeechRecognition' in window) {
+      this.recognition = new (window as any).webkitSpeechRecognition();
+      this.recognition.continuous = false;
+      this.recognition.interimResults = false;
+      this.recognition.lang = 'fr-FR';
+
+      this.recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        this.userInput = transcript;
+        this.cdr.detectChanges();
+        this.sendMessage();
+      };
+
+      this.recognition.onerror = (event: any) => {
+        console.error('Erreur de reconnaissance vocale:', event.error);
+        this.isListening = false;
+        this.cdr.detectChanges();
+      };
+
+      this.recognition.onend = () => {
+        this.isListening = false;
+        this.cdr.detectChanges();
+      };
+    }
+  }
 
   ngOnInit() {
     if (this.messages.length === 0) {
@@ -166,6 +234,32 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   togglePdf() {
     this.isPdfExpanded = !this.isPdfExpanded;
+  }
+
+  toggleVoiceMode() {
+    this.isVoiceMode = !this.isVoiceMode;
+    if (this.isVoiceMode) {
+      this.startListening();
+    } else {
+      this.stopListening();
+    }
+  }
+
+  startListening() {
+    if (this.recognition) {
+      this.isListening = true;
+      this.recognition.start();
+    }
+  }
+
+  stopListening() {
+    if (this.recognition) {
+      this.isListening = false;
+      this.recognition.stop();
+      if (this.userInput.trim()) {
+        this.sendMessage();
+      }
+    }
   }
 
   private loadPdfUrl() {
@@ -213,10 +307,12 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   private addUserMessage(text: string) {
     this.messages.push({ text, isUser: true });
     this.shouldScroll = true;
+    this.cdr.detectChanges();
   }
 
   private addBotMessage(text: string) {
     this.messages.push({ text, isUser: false });
     this.shouldScroll = true;
+    this.cdr.detectChanges();
   }
 }
