@@ -10,7 +10,7 @@ import { Router } from '@angular/router';
   standalone: true,
   imports: [CommonModule, FileUploadComponent, ChatComponent],
   template: `
-    <div class="min-h-screen p-4 bg-gradient-to-b from-white to-gray-50">
+    <div class="min-h-screen p-4 bg-gradient-to-br from-green-50 via-white to-green-100">
       <div class="flex justify-end mb-4">
         <button (click)="logout()" class="text-gray-600 hover:text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all duration-300">
           <span>Déconnexion</span>
