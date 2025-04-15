@@ -68,7 +68,7 @@ export class HomeComponent implements OnInit {
   onFileUploaded() {
     this.documentLoaded = true;
     this.messages.push({
-      content: "Le document a été chargé avec succès. Je suis prêt à répondre à vos questions.",
+      text: "Le document a été chargé avec succès. Je suis prêt à répondre à vos questions.",
       isUser: false
     });
   }
@@ -81,7 +81,7 @@ export class HomeComponent implements OnInit {
 
   private initializeChat() {
     this.messages = [{
-      content: "Bonjour ! Je suis votre assistant Medisense. Une fois que vous aurez chargé votre document, je pourrai répondre à vos questions à son sujet.",
+      text: "Bonjour ! Je suis votre assistant Medisense. Une fois que vous aurez chargé votre document, je pourrai répondre à vos questions à son sujet.",
       isUser: false
     }];
   }

@@ -1,7 +1,10 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NgxDropzoneModule } from 'ngx-dropzone';
-import { ChatService } from '../../services/chat.service';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { AuthService } from '../../services/auth.service';
+import { take } from 'rxjs/operators';
 
 export interface UploadedFile {
   name: string;
@@ -12,7 +15,7 @@ export interface UploadedFile {
 @Component({
   selector: 'app-file-upload',
   standalone: true,
-  imports: [CommonModule, NgxDropzoneModule],
+  imports: [CommonModule, NgxDropzoneModule, HttpClientModule],
   template: `
     <div class="upload-container">
       <h1 class="app-title">Medisense</h1>
@@ -69,7 +72,10 @@ export class FileUploadComponent {
   isUploading = false;
   uploadProgress = 0;
 
-  constructor(private chatService: ChatService) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
 
   onSelect(event: any) {
     const file = event.addedFiles[0];
@@ -77,16 +83,35 @@ export class FileUploadComponent {
       this.isUploading = true;
       this.uploadProgress = 0;
 
-      const interval = setInterval(() => {
-        this.uploadProgress += 10;
-        if (this.uploadProgress >= 100) {
-          clearInterval(interval);
-          this.chatService.simulateFileUpload(file).subscribe(() => {
-            this.isUploading = false;
-            this.fileUploaded.emit();
-          });
+      this.authService.user$.pipe(take(1)).subscribe(user => {
+        if (!user) {
+          console.error('Utilisateur non connecté');
+          this.isUploading = false;
+          return;
         }
-      }, 200);
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('user_id', user.uid);
+
+        this.http.post(`${environment.apiUrl}/analyze`, formData, {
+          reportProgress: true,
+          observe: 'events'
+        }).subscribe({
+          next: (event: any) => {
+            if (event.type === 1) { // UploadProgress
+              this.uploadProgress = Math.round((event.loaded / event.total) * 100);
+            } else if (event.type === 4) { // Response
+              this.isUploading = false;
+              this.fileUploaded.emit();
+            }
+          },
+          error: (error) => {
+            console.error('Upload failed:', error);
+            this.isUploading = false;
+          }
+        });
+      });
     }
   }
 }
