@@ -34,18 +34,7 @@ import { Router } from '@angular/router';
 export class HomeComponent implements OnInit {
   documentLoaded = false;
   messages: Message[] = [];
-  previousFiles: UploadedFile[] = [
-    {
-      name: 'Résultats_Analyse_2024.pdf',
-      size: 1240,
-      date: new Date('2024-01-15T14:30:00')
-    },
-    {
-      name: 'Ordonnance_Janvier.pdf',
-      size: 890,
-      date: new Date('2024-01-10T09:15:00')
-    }
-  ];
+  previousFiles: UploadedFile[] = [];
 
   constructor(
     private authService: AuthService,
