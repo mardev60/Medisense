@@ -1,48 +1,40 @@
 import { Injectable } from '@angular/core';
-import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { Router } from '@angular/router';
-import { GoogleAuthProvider } from 'firebase/auth';
+import { Auth, GoogleAuthProvider, signInWithPopup, signOut, User } from '@angular/fire/auth';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  constructor(
-    private afAuth: AngularFireAuth,
-    private router: Router
-  ) {}
+  private userSubject = new BehaviorSubject<User | null>(null);
+  user$ = this.userSubject.asObservable();
 
-  async signInWithGoogle() {
+  constructor(private auth: Auth) {
+    this.auth.onAuthStateChanged(user => {
+      this.userSubject.next(user);
+    });
+  }
+
+  async loginWithGoogle(): Promise<void> {
     try {
-      const result = await this.afAuth.signInWithPopup(new GoogleAuthProvider());
-      if (result.user) {
-        localStorage.setItem('userId', result.user.uid);
-        this.router.navigate(['/dashboard']);
-      }
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(this.auth, provider);
     } catch (error) {
-      console.error('Erreur lors de la connexion avec Google:', error);
+      console.error('Erreur de connexion:', error);
+      throw error;
     }
   }
 
-  async signOut() {
+  async logout(): Promise<void> {
     try {
-      await this.afAuth.signOut();
-      localStorage.removeItem('userId');
-      this.router.navigate(['/login']);
+      await signOut(this.auth);
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
+      console.error('Erreur de déconnexion:', error);
+      throw error;
     }
   }
 
-  getCurrentUser() {
-    return this.afAuth.authState;
+  isAuthenticated(): Observable<User | null> {
+    return this.user$;
   }
-
-  getStoredUserId(): string | null {
-    return localStorage.getItem('userId');
-  }
-
-  isUserStored(): boolean {
-    return !!this.getStoredUserId();
-  }
-} 
+}
