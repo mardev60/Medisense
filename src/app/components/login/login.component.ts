@@ -17,6 +17,9 @@ import { AuthService } from '../../services/auth.service';
         <!-- Main content -->
         <div class="bg-white p-12 rounded-3xl shadow-2xl relative z-10 backdrop-blur-sm bg-opacity-90">
           <div class="text-center mb-10">
+            <div class="flex justify-center mb-6 app-title">
+              <img src="https://i.ibb.co/wZ1d3vT3/Medisense-icon.png" alt="Medisense Logo" class="w-28">
+            </div>
             <h1 class="app-title text-6xl mb-4">Medisense</h1>
             <p class="text-gray-600 text-lg mb-8">Votre assistant médical intelligent</p>
             
