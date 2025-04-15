@@ -5,6 +5,7 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 import { take } from 'rxjs/operators';
+import { SafeUrlPipe } from '../../pipes/safe-url.pipe';
 
 export interface Message {
   text: string;
@@ -18,42 +19,84 @@ interface ChatResponse {
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SafeUrlPipe],
   template: `
-    <div class="chat-container">
-      <div class="flex justify-between items-center mb-4 p-4 border-b">
-        <button (click)="goBack.emit()" class="btn-back flex items-center text-gray-600 hover:text-gray-800">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-          </svg>
-          Charger un nouveau document
-        </button>
-        <span class="text-sm text-gray-500">Document actif</span>
-      </div>
+    <div class="flex h-screen">
+      <!-- Chat Container -->
+      <div class="flex-1 flex flex-col transition-all duration-300" 
+           [ngClass]="{'ml-0': !isPdfExpanded, '-ml-52': isPdfExpanded}">
+        <div class="chat-container h-full flex flex-col">
+          <div class="flex justify-between items-center mb-4 p-4 border-b">
+            <button (click)="goBack.emit()" class="btn-back flex items-center text-gray-600 hover:text-gray-800">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+              Charger un nouveau document
+            </button>
+            <div class="flex items-center space-x-4">
+              <span class="text-sm text-gray-500">Document actif</span>
+              <button 
+                (click)="togglePdf()" 
+                class="p-2 text-gray-600 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50"
+                [title]="isPdfExpanded ? 'Masquer le document' : 'Afficher le document'">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
 
-      <div class="flex-1 overflow-y-auto mb-4 p-4" #chatContainer>
-        <div *ngFor="let message of messages" 
-             [ngClass]="{'message': true, 'user-message': message.isUser, 'ai-message': !message.isUser}">
-          {{ message.text }}
+          <div class="flex-1 overflow-y-auto mb-4 p-4" #chatContainer>
+            <div *ngFor="let message of messages" 
+                 [ngClass]="{'message': true, 'user-message': message.isUser, 'ai-message': !message.isUser}">
+              {{ message.text }}
+            </div>
+          </div>
+
+          <div class="border-t p-4 bg-white rounded-b-2xl">
+            <div class="flex gap-3">
+              <input type="text" 
+                     [(ngModel)]="userInput" 
+                     (keyup.enter)="sendMessage()"
+                     placeholder="Posez votre question sur le document..."
+                     [disabled]="isLoading"
+                     class="chat-input">
+              <button (click)="sendMessage()" 
+                      [disabled]="!userInput || isLoading"
+                      class="btn-primary flex items-center">
+                <span>Envoyer</span>
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="border-t p-4 bg-white rounded-b-2xl">
-        <div class="flex gap-3">
-          <input type="text" 
-                 [(ngModel)]="userInput" 
-                 (keyup.enter)="sendMessage()"
-                 placeholder="Posez votre question sur le document..."
-                 [disabled]="isLoading"
-                 class="chat-input">
-          <button (click)="sendMessage()" 
-                  [disabled]="!userInput || isLoading"
-                  class="btn-primary flex items-center">
-            <span>Envoyer</span>
-            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-            </svg>
-          </button>
+      <!-- PDF Viewer -->
+      <div class="w-1/3 border-l bg-gray-50 transition-all duration-300 fixed right-0 h-full" 
+           [ngClass]="{'translate-x-0': isPdfExpanded, 'translate-x-full': !isPdfExpanded}">
+        <div class="h-full flex flex-col">
+          <div class="p-4 border-b flex justify-between items-center">
+            <h3 class="text-lg font-medium text-gray-800">Document PDF</h3>
+            <button 
+              (click)="togglePdf()" 
+              class="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
+              title="Fermer le document">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="flex-1 overflow-hidden">
+            <iframe 
+              [src]="pdfUrl | safeUrl" 
+              class="w-full h-full"
+              frameborder="0">
+            </iframe>
+          </div>
         </div>
       </div>
     </div>
@@ -65,6 +108,8 @@ export class ChatComponent implements OnInit {
 
   userInput = '';
   isLoading = false;
+  isPdfExpanded = false;
+  pdfUrl = '';
 
   constructor(
     private http: HttpClient,
@@ -74,6 +119,19 @@ export class ChatComponent implements OnInit {
   ngOnInit() {
     if (this.messages.length === 0) {
       this.addBotMessage('Bonjour ! Je suis votre assistant médical. Comment puis-je vous aider ?');
+    }
+    this.loadPdfUrl();
+  }
+
+  togglePdf() {
+    this.isPdfExpanded = !this.isPdfExpanded;
+  }
+
+  private loadPdfUrl() {
+    const pdfId = localStorage.getItem('currentPdfId');
+    const storageUrl = localStorage.getItem('storage_url');
+    if (pdfId && storageUrl) {
+      this.pdfUrl = storageUrl;
     }
   }
 

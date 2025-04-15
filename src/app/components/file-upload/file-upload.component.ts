@@ -84,7 +84,7 @@ export interface UploadedFile {
                           </svg>
                         </button>
                         <button 
-                          (click)="openChat(file.pdf_id)" 
+                          (click)="openChat(file.pdf_id, file.storage_url)" 
                           class="p-2 text-gray-400 hover:text-green-600 transition-colors rounded-lg hover:bg-white"
                           [disabled]="file.status !== 'completed'"
                           [title]="file.status === 'completed' ? 'Ouvrir le chat' : 'Document en cours de traitement'">
@@ -161,8 +161,9 @@ export class FileUploadComponent implements OnInit {
     });
   }
 
-  openChat(pdfId: string) {
+  openChat(pdfId: string, storageUrl: string) {
     localStorage.setItem('currentPdfId', pdfId);
+    localStorage.setItem('storage_url', storageUrl);
     this.fileUploaded.emit();
   }
 
@@ -195,6 +196,7 @@ export class FileUploadComponent implements OnInit {
               console.log(event.body);
               if (event.body && event.body.data && event.body.data.pdf_id) {
                 localStorage.setItem('currentPdfId', event.body.data.pdf_id);
+                localStorage.setItem('storage_url', event.body.data.storage_url);
               }
               this.fileUploaded.emit();
               this.loadDocuments();
