@@ -102,6 +102,9 @@ export class FileUploadComponent {
             if (event.type === 1) { // UploadProgress
               this.uploadProgress = Math.round((event.loaded / event.total) * 100);
             } else if (event.type === 4) { // Response
+              if (event.body?.status === 'success') {
+                localStorage.setItem('currentPdfId', event.body.data.pdf_id);
+              }
               this.isUploading = false;
               this.fileUploaded.emit();
             }

@@ -95,7 +95,8 @@ export class ChatComponent implements OnInit {
 
       this.http.post<ChatResponse>(`${environment.apiUrl}/ask`, {
         question: userMessage,
-        user_id: user.uid
+        user_id: user.uid,
+        pdf_id: localStorage.getItem('currentPdfId')
       }).subscribe({
         next: (response) => {
           this.addBotMessage(response.answer);
