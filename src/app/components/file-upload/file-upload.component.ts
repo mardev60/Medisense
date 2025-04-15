@@ -172,6 +172,10 @@ export class FileUploadComponent implements OnInit {
               this.uploadProgress = Math.round((event.loaded / event.total) * 100);
             } else if (event.type === 4) { 
               this.isUploading = false;
+              console.log(event.body);
+              if (event.body && event.body.data && event.body.data.pdf_id) {
+                localStorage.setItem('currentPdfId', event.body.data.pdf_id);
+              }
               this.fileUploaded.emit();
               this.loadDocuments();
             }
