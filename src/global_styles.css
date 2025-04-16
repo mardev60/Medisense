@@ -38,6 +38,7 @@ body {
 .chat-container {
   @apply bg-white rounded-2xl shadow-xl p-4 max-w-4xl mx-auto mt-10 h-[600px] flex flex-col;
   animation: containerSlide 0.5s ease-out;
+  height: 80%;
 }
 
 .message {

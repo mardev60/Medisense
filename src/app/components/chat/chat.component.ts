@@ -11,11 +11,19 @@ export interface Message {
   text: string;
   isUser: boolean;
   audioUrl?: string;
+  sources?: Array<{
+    document_name: string;
+    content: string;
+  }>;
 }
 
 interface ChatResponse {
   answer: string;
   audio?: string;
+  sources?: Array<{
+    document_name: string;
+    content: string;
+  }>;
 }
 
 @Component({
@@ -28,7 +36,7 @@ interface ChatResponse {
       <div class="flex-1 flex flex-col transition-all duration-300" 
            [ngClass]="{'ml-0': !isPdfExpanded, '-ml-52': isPdfExpanded}">
         <div class="chat-container h-full flex flex-col">
-          <div class="flex justify-between items-center mb-4 p-4 border-b">
+          <div class="flex justify-between items-center p-4 border-b">
             <button (click)="goBack.emit()" class="btn-back flex items-center text-gray-600 hover:text-gray-800">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -49,11 +57,12 @@ interface ChatResponse {
             </div>
           </div>
 
-          <div class="flex-1 overflow-y-auto mb-4 p-4" #chatContainer>
+          <div class="flex-1 overflow-y-auto p-6" #chatContainer>
             <div *ngFor="let message of messages; let i = index" 
-                 [ngClass]="{'message': true, 'user-message': message.isUser, 'ai-message': !message.isUser}">
+                 [ngClass]="{'message': true, 'user-message': message.isUser, 'ai-message': !message.isUser}"
+                 class="mb-6">
               {{ message.text }}
-              <div *ngIf="message.audioUrl" class="mt-2">
+              <div *ngIf="message.audioUrl" class="mt-3">
                 <audio #audioPlayer 
                        controls 
                        [src]="message.audioUrl" 
@@ -61,8 +70,16 @@ interface ChatResponse {
                        (loadedmetadata)="onAudioLoaded($event, i)">
                 </audio>
               </div>
+              <div *ngIf="message.sources && message.sources.length > 0" class="mt-3">
+                <div class="text-xs text-gray-800 mb-2">Sources utilisées :</div>
+                <div class="space-y-3">
+                  <div *ngFor="let source of message.sources.slice(0,2)" class="bg-gray-100 rounded-lg p-3 text-sm">
+                    {{ source.content }}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div *ngIf="isLoading" class="message ai-message">
+            <div *ngIf="isLoading" class="message ai-message mb-6">
               <div class="flex items-center space-x-2">
                 <span>Je réfléchis</span>
                 <div class="flex space-x-1">
@@ -74,7 +91,7 @@ interface ChatResponse {
             </div>
           </div>
 
-          <div class="border-t p-4 bg-white rounded-b-2xl">
+          <div class="border-t p-6 bg-white">
             <div class="flex gap-3">
               <input type="text" 
                      [(ngModel)]="userInput" 
@@ -100,7 +117,7 @@ interface ChatResponse {
                 </svg>
               </button>
             </div>
-            <div *ngIf="isVoiceMode" class="mt-4 flex items-center justify-center">
+            <div *ngIf="isVoiceMode" class="mt-6 flex items-center justify-center">
               <div class="flex flex-col items-center">
                 <div class="relative">
                   <div class="absolute inset-0 flex items-center justify-center">
@@ -186,6 +203,54 @@ interface ChatResponse {
     audio::-webkit-media-controls-current-time-display,
     audio::-webkit-media-controls-time-remaining-display {
       display: none;
+    }
+
+    .message {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .user-message {
+      background-color: #f3f4f6;
+      margin-left: 2rem;
+    }
+
+    .ai-message {
+      background-color: #ffffff;
+      margin-right: 2rem;
+      border: 1px solid #e5e7eb;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: #10b981;
+    }
+
+    .chat-input:disabled {
+      background-color: #f3f4f6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
   `]
 })
@@ -326,7 +391,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
             const audioBlob = this.base64ToBlob(response.audio, 'audio/mp3');
             audioUrl = URL.createObjectURL(audioBlob);
           }
-          this.addBotMessage(response.answer, audioUrl);
+          this.addBotMessage(response.answer, audioUrl, response.sources);
           this.isLoading = false;
           this.currentMessageIsVocal = false;
         },
@@ -355,8 +420,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.cdr.detectChanges();
   }
 
-  private addBotMessage(text: string, audioUrl?: string) {
-    this.messages.push({ text, isUser: false, audioUrl });
+  private addBotMessage(text: string, audioUrl?: string, sources?: Array<{document_name: string, content: string}>) {
+    this.messages.push({ text, isUser: false, audioUrl, sources });
     this.shouldScroll = true;
     this.cdr.detectChanges();
   }
