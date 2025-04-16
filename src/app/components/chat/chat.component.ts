@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -10,10 +10,12 @@ import { SafeUrlPipe } from '../../pipes/safe-url.pipe';
 export interface Message {
   text: string;
   isUser: boolean;
+  audioUrl?: string;
 }
 
 interface ChatResponse {
   answer: string;
+  audio?: string;
 }
 
 @Component({
@@ -48,9 +50,17 @@ interface ChatResponse {
           </div>
 
           <div class="flex-1 overflow-y-auto mb-4 p-4" #chatContainer>
-            <div *ngFor="let message of messages" 
+            <div *ngFor="let message of messages; let i = index" 
                  [ngClass]="{'message': true, 'user-message': message.isUser, 'ai-message': !message.isUser}">
               {{ message.text }}
+              <div *ngIf="message.audioUrl" class="mt-2">
+                <audio #audioPlayer 
+                       controls 
+                       [src]="message.audioUrl" 
+                       class="w-48 h-8"
+                       (loadedmetadata)="onAudioLoaded($event, i)">
+                </audio>
+              </div>
             </div>
             <div *ngIf="isLoading" class="message ai-message">
               <div class="flex items-center space-x-2">
@@ -163,10 +173,25 @@ interface ChatResponse {
         transform: scale(1.05);
       }
     }
+
+    audio {
+      height: 32px;
+      width: 192px;
+    }
+
+    audio::-webkit-media-controls-panel {
+      background-color: #f3f4f6;
+    }
+
+    audio::-webkit-media-controls-current-time-display,
+    audio::-webkit-media-controls-time-remaining-display {
+      display: none;
+    }
   `]
 })
 export class ChatComponent implements OnInit, AfterViewChecked {
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
+  @ViewChildren('audioPlayer') private audioPlayers!: QueryList<ElementRef>;
   @Input() messages: Message[] = [];
   @Output() goBack = new EventEmitter<void>();
 
@@ -178,6 +203,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   isVoiceMode = false;
   isListening = false;
   private recognition: any;
+  currentMessageIsVocal = false;
 
   constructor(
     private http: HttpClient,
@@ -247,6 +273,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   startListening() {
     if (this.recognition) {
+      this.currentMessageIsVocal = true;
       this.isListening = true;
       this.recognition.start();
     }
@@ -274,6 +301,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     if (!this.userInput.trim() || this.isLoading) return;
 
     const userMessage = this.userInput;
+    const isVocalMode = this.currentMessageIsVocal;
     this.addUserMessage(userMessage);
     this.userInput = '';
     this.isLoading = true;
@@ -289,19 +317,36 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       this.http.post<ChatResponse>(`${environment.apiUrl}/ask`, {
         question: userMessage,
         user_id: user.uid,
-        pdf_id: localStorage.getItem('currentPdfId')
+        pdf_id: localStorage.getItem('currentPdfId'),
+        vocalMode: isVocalMode
       }).subscribe({
         next: (response) => {
-          this.addBotMessage(response.answer);
+          let audioUrl: string | undefined = undefined;
+          if (response.audio) {
+            const audioBlob = this.base64ToBlob(response.audio, 'audio/mp3');
+            audioUrl = URL.createObjectURL(audioBlob);
+          }
+          this.addBotMessage(response.answer, audioUrl);
           this.isLoading = false;
+          this.currentMessageIsVocal = false;
         },
         error: (error) => {
           console.error('Error:', error);
           this.addBotMessage('Désolé, une erreur est survenue. Veuillez réessayer.');
           this.isLoading = false;
+          this.currentMessageIsVocal = false;
         }
       });
     });
+  }
+
+  private base64ToBlob(base64: string, type: string): Blob {
+    const binaryString = window.atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return new Blob([bytes], { type });
   }
 
   private addUserMessage(text: string) {
@@ -310,9 +355,18 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.cdr.detectChanges();
   }
 
-  private addBotMessage(text: string) {
-    this.messages.push({ text, isUser: false });
+  private addBotMessage(text: string, audioUrl?: string) {
+    this.messages.push({ text, isUser: false, audioUrl });
     this.shouldScroll = true;
     this.cdr.detectChanges();
+  }
+
+  onAudioLoaded(event: Event, index: number) {
+    if (index === this.messages.length - 1) {
+      const audioElement = event.target as HTMLAudioElement;
+      audioElement.play().catch(error => {
+        console.error('Erreur lors de la lecture audio:', error);
+      });
+    }
   }
 }
